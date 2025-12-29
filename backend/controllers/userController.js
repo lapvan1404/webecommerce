@@ -1,172 +1,68 @@
-import asyncHandler from '../middleware/asyncHandler.js';
-import User from '../models/userModel.js';
-import jwt from 'jsonwebtoken';
-import generateToken from '../utils/generateToken.js';
-
-const authUser = asyncHandler(async (req, res) => {
-  const {email,password} = req.body;
-
-  const user = await User.findOne({email})
-
-  if(user && (await user.matchPassword(password))){
-   generateToken(res, user._id)
-
-    res.status(200).json({
-      _id: user._id,
-      name:user.name,
-      email:user.email,
-      isAdmin:user.isAdmin,
-    })
-  }else {
-    res.status(401);
-    throw new Error('Nhập sai tài khoản hoặc mật khẩu');
-  }
-  
-});
-
 const registerUser = asyncHandler(async (req, res) => {
-  const {name, email, password} = req.body;
+  const { name, email, password } = req.body;
 
-  const userExists = await User.findOne({email});
-  if(userExists) {
+  // ===== 1. Validate Username =====
+  if (!name) {
     res.status(400);
-    throw new Error('User already exists')
+    throw new Error('Username không được để trống');
   }
+
+  if (name.length < 5 || name.length > 15) {
+    res.status(400);
+    throw new Error('Username phải từ 5 đến 15 ký tự');
+  }
+
+  const usernameRegex = /^[a-zA-Z0-9]+$/;
+  if (!usernameRegex.test(name)) {
+    res.status(400);
+    throw new Error('Username chỉ được chứa chữ và số');
+  }
+
+  // ===== 2. Validate Password =====
+  if (!password) {
+    res.status(400);
+    throw new Error('Password không được để trống');
+  }
+
+  if (password.length < 6 || password.length > 20) {
+    res.status(400);
+    throw new Error('Password phải từ 6 đến 20 ký tự');
+  }
+
+  // ===== 3. Validate Email (cho phép trống) =====
+  if (email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      res.status(400);
+      throw new Error('Email không đúng định dạng');
+    }
+  }
+
+  // ===== 4. Check user tồn tại =====
+  const userExists = email ? await User.findOne({ email }) : null;
+
+  if (userExists) {
+    res.status(400);
+    throw new Error('Email đã tồn tại');
+  }
+
+  // ===== 5. Tạo user =====
   const user = await User.create({
     name,
-    email,
+    email: email || null,
     password,
-  })
-  if(user) {
-   generateToken(res, user._id);
+  });
+
+  if (user) {
+    generateToken(res, user._id);
+
     res.status(201).json({
-      _id:user._id,
-      name:user.name,
-      email:user.email,
-      isAdmin:user.isAdmin
-    })
-  }else {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    });
+  } else {
     res.status(400);
-    throw new Error('Invalid user data')
+    throw new Error('Dữ liệu người dùng không hợp lệ');
   }
 });
-
-const logoutUser = asyncHandler(async (req, res) => {
-  res.cookie('jwt','',{
-    httpOnly: true,
-    expires: new Date(0)
-  })
-
-  res.status(200).json({message: 'Logged out successfully'})
-});
-
-const getUserProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id)
-
-  if(user){
-   res.status(200).json({
-    _id:user._id,
-    name:user.name,
-    email:user.email,
-    isAdmin:user.isAdmin
-   })
-  }
-  else {
-    res.status(404);
-    throw new Error('User not found')
-  }
-});
-
-
-const updateUserProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
-  if(user) {
-    user.name = req.body.name  || user.name;
-    user.email = req.body.email || user.email;
-    if(req.body.password){
-      user.password = req.body.password;
-    }
-    const updateUser = await user.save();
-
-    res.status(200).json({
-      _id:updateUser._id,
-      name:updateUser.name,
-      email:updateUser.email,
-      isAdmin:updateUser.isAdmin,
-    });
-
-  }else {
-    res.status(404);
-    throw new Error('User not found')
-  }
-
-});
-
-
-const getUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({});
-  res.status(200).json(users);
-});
-
-const getUserByID = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id).select('-password');
-
-  if(user){
-    res.status(200).json(user);
-  }else{
-    res.status(404);
-    throw new Error('Không tìm thấy người dùng')
-  }
-});
-
-
-
-const deleteUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if(user) {
-    if(user.isAdmin){
-      res.status(400);
-      throw new Error('không thể xóa admin user');
-    }
-    await User.deleteOne({_id: user._id});
-    res.status(200).json({message: 'Xóa người dùng thành công'});
-  }else {
-    res.status(404);
-    throw new Error('Không tìm thấy người dùng');
-  }
-});
-
-
-const updateUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if(user){
-    user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
-    user.isAdmin = Boolean(req.body.isAdmin);
-
-    const updateUser = await user.save();
-
-    res.status(200).json({
-      _id: updateUser._id,
-      name: updateUser.name,
-      email: updateUser.email,
-      isAdmin: updateUser.isAdmin,
-    });
-  }
-  else{
-    res.status(404);
-    throw new Error('Không tìm thấy người dùng');
-  }
-});
-
-export {
-    authUser,
-    registerUser,
-    logoutUser,
-    getUserProfile,
-    updateUserProfile,
-    getUsers,
-    deleteUser,
-    getUserByID,
-    updateUser
-}
