@@ -13,7 +13,6 @@ const RegisterScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [errors, setErrors] = useState({});
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -31,42 +30,40 @@ const RegisterScreen = () => {
     }
   }, [userInfo, redirect, navigate]);
 
-  // ✅ VALIDATION THEO TÀI LIỆU
-  const validate = () => {
-    const newErrors = {};
-
-    // Username
-    if (!name) {
-      newErrors.name = "Tên không được để trống";
-    } else if (!/^[a-zA-Z0-9]{5,15}$/.test(name)) {
-      newErrors.name = "Tên phải từ 5–15 ký tự, chỉ gồm chữ và số";
-    }
-
-    // Password
-    if (!password) {
-      newErrors.password = "Mật khẩu không được để trống";
-    } else if (password.length < 6 || password.length > 20) {
-      newErrors.password = "Mật khẩu phải từ 6–20 ký tự";
-    }
-
-    // Confirm password
-    if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Mật khẩu nhập lại không khớp";
-    }
-
-    // Email (không bắt buộc)
-    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
-      newErrors.email = "Email không đúng định dạng";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (!validate()) return;
+    // ✅ Username: chữ + số, 5–15 ký tự
+    const usernameRegex = /^[a-zA-Z0-9]{5,15}$/;
+    if (!usernameRegex.test(name)) {
+      toast.error(
+        "Tên đăng nhập chỉ gồm chữ và số, độ dài từ 5 đến 15 ký tự"
+      );
+      return;
+    }
+
+    // ✅ Email: bắt buộc + đúng định dạng
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    if (!email) {
+      toast.error("Email không được để trống");
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      toast.error("Email không đúng định dạng");
+      return;
+    }
+
+    // ✅ Password: 6–20 ký tự (cho phép chữ, số, ký tự đặc biệt)
+    if (password.length < 6 || password.length > 20) {
+      toast.error("Mật khẩu phải có độ dài từ 6 đến 20 ký tự");
+      return;
+    }
+
+    // ✅ Confirm password
+    if (password !== confirmPassword) {
+      toast.error("Hai mật khẩu không trùng khớp");
+      return;
+    }
 
     try {
       const res = await register({ name, email, password }).unwrap();
@@ -82,17 +79,21 @@ const RegisterScreen = () => {
       <h1>Đăng Ký</h1>
 
       <Form onSubmit={submitHandler}>
+        {/* TÊN ĐĂNG NHẬP */}
         <Form.Group controlId="name" className="my-3">
-          <Form.Label>Tên</Form.Label>
+          <Form.Label>Tên đăng nhập</Form.Label>
           <Form.Control
             type="text"
-            placeholder="Nhập tên"
+            placeholder="Nhập tên đăng nhập"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          {errors.name && <div className="text-danger">{errors.name}</div>}
+          <Form.Text className="text-muted">
+            Chỉ gồm chữ và số, độ dài 5–15 ký tự
+          </Form.Text>
         </Form.Group>
 
+        {/* EMAIL */}
         <Form.Group controlId="email" className="my-3">
           <Form.Label>Email</Form.Label>
           <Form.Control
@@ -101,22 +102,23 @@ const RegisterScreen = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          {errors.email && <div className="text-danger">{errors.email}</div>}
         </Form.Group>
 
+        {/* MẬT KHẨU */}
         <Form.Group controlId="password" className="my-3">
-          <Form.Label>Mật Khẩu</Form.Label>
+          <Form.Label>Mật khẩu</Form.Label>
           <Form.Control
             type="password"
             placeholder="Nhập mật khẩu"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          {errors.password && (
-            <div className="text-danger">{errors.password}</div>
-          )}
+          <Form.Text className="text-muted">
+            Độ dài từ 6–20 ký tự, có thể gồm chữ, số và ký tự đặc biệt
+          </Form.Text>
         </Form.Group>
 
+        {/* NHẬP LẠI MẬT KHẨU */}
         <Form.Group controlId="confirmPassword" className="my-3">
           <Form.Label>Nhập lại mật khẩu</Form.Label>
           <Form.Control
@@ -125,12 +127,14 @@ const RegisterScreen = () => {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
-          {errors.confirmPassword && (
-            <div className="text-danger">{errors.confirmPassword}</div>
-          )}
         </Form.Group>
 
-        <Button type="submit" variant="primary" className="mt-2" disabled={isLoading}>
+        <Button
+          type="submit"
+          variant="primary"
+          className="mt-2"
+          disabled={isLoading}
+        >
           Đăng Ký
         </Button>
 
