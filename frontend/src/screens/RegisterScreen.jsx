@@ -14,9 +14,10 @@ const RegisterScreen = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [errors, setErrors] = useState({});
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
   const [register, { isLoading }] = useRegisterMutation();
   const { userInfo } = useSelector((state) => state.auth);
 
@@ -25,49 +26,46 @@ const RegisterScreen = () => {
   const redirect = sp.get("redirect") || "/";
 
   useEffect(() => {
-    if (userInfo) {
-      navigate(redirect);
-    }
+    if (userInfo) navigate(redirect);
   }, [userInfo, redirect, navigate]);
 
+  // ================= VALIDATION =================
+  const validate = () => {
+    const err = {};
+
+    if (!/^[a-zA-Z0-9]{5,18}$/.test(name)) {
+      err.name = "Tài khoản gồm 5–18 ký tự, được tạo thành bởi chữ cái và chữ số!";
+    }
+
+    if (!email) {
+      err.email = "Email không được để trống!";
+    } else if (!/^\S+@\S+\.\S+$/.test(email)) {
+      err.email = "Email không đúng định dạng!";
+    }
+
+    if (
+      !/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).{6,20}$/.test(password)
+    ) {
+      err.password =
+        "Mật khẩu 6–20 ký tự, gồm chữ, số và ký tự đặc biệt!";
+    }
+
+    if (confirmPassword !== password) {
+      err.confirmPassword = "Hai mật khẩu không trùng khớp!";
+    }
+
+    setErrors(err);
+    return Object.keys(err).length === 0;
+  };
+
+  // ================= SUBMIT =================
   const submitHandler = async (e) => {
     e.preventDefault();
-
-    // ✅ Username: chữ + số, 5–15 ký tự
-    const usernameRegex = /^[a-zA-Z0-9]{5,15}$/;
-    if (!usernameRegex.test(name)) {
-      toast.error(
-        "Tên đăng nhập chỉ gồm chữ và số, độ dài từ 5 đến 15 ký tự"
-      );
-      return;
-    }
-
-    // ✅ Email: bắt buộc + đúng định dạng
-    const emailRegex = /^\S+@\S+\.\S+$/;
-    if (!email) {
-      toast.error("Email không được để trống");
-      return;
-    }
-    if (!emailRegex.test(email)) {
-      toast.error("Email không đúng định dạng");
-      return;
-    }
-
-    // ✅ Password: 6–20 ký tự (cho phép chữ, số, ký tự đặc biệt)
-    if (password.length < 6 || password.length > 20) {
-      toast.error("Mật khẩu phải có độ dài từ 6 đến 20 ký tự");
-      return;
-    }
-
-    // ✅ Confirm password
-    if (password !== confirmPassword) {
-      toast.error("Hai mật khẩu không trùng khớp");
-      return;
-    }
+    if (!validate()) return;
 
     try {
       const res = await register({ name, email, password }).unwrap();
-      dispatch(setCredentials({ ...res }));
+      dispatch(setCredentials(res));
       navigate(redirect);
     } catch (err) {
       toast.error(err?.data?.message || err.error);
@@ -79,62 +77,83 @@ const RegisterScreen = () => {
       <h1>Đăng Ký</h1>
 
       <Form onSubmit={submitHandler}>
-        {/* TÊN ĐĂNG NHẬP */}
-        <Form.Group controlId="name" className="my-3">
-          <Form.Label>Tên đăng nhập</Form.Label>
+        {/* USERNAME */}
+        <Form.Group className="my-3">
+          <Form.Label>Tài khoản</Form.Label>
           <Form.Control
             type="text"
-            placeholder="Nhập tên đăng nhập"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            placeholder="Nhập tài khoản"
+            onChange={(e) => {
+              setName(e.target.value);
+              setErrors({ ...errors, name: "" });
+            }}
           />
-          <Form.Text className="text-muted">
-            Chỉ gồm chữ và số, độ dài 5–15 ký tự
-          </Form.Text>
+          {errors.name && (
+            <div style={{ color: "red", fontSize: "14px", marginTop: "4px" }}>
+              {errors.name}
+            </div>
+          )}
         </Form.Group>
 
         {/* EMAIL */}
-        <Form.Group controlId="email" className="my-3">
+        <Form.Group className="my-3">
           <Form.Label>Email</Form.Label>
           <Form.Control
             type="email"
-            placeholder="Nhập email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Nhập email"
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setErrors({ ...errors, email: "" });
+            }}
           />
+          {errors.email && (
+            <div style={{ color: "red", fontSize: "14px", marginTop: "4px" }}>
+              {errors.email}
+            </div>
+          )}
         </Form.Group>
 
-        {/* MẬT KHẨU */}
-        <Form.Group controlId="password" className="my-3">
+        {/* PASSWORD */}
+        <Form.Group className="my-3">
           <Form.Label>Mật khẩu</Form.Label>
           <Form.Control
             type="password"
-            placeholder="Nhập mật khẩu"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Nhập mật khẩu"
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setErrors({ ...errors, password: "" });
+            }}
           />
-          <Form.Text className="text-muted">
-            Độ dài từ 6–20 ký tự, có thể gồm chữ, số và ký tự đặc biệt
-          </Form.Text>
+          {errors.password && (
+            <div style={{ color: "red", fontSize: "14px", marginTop: "4px" }}>
+              {errors.password}
+            </div>
+          )}
         </Form.Group>
 
-        {/* NHẬP LẠI MẬT KHẨU */}
-        <Form.Group controlId="confirmPassword" className="my-3">
-          <Form.Label>Nhập lại mật khẩu</Form.Label>
+        {/* CONFIRM PASSWORD */}
+        <Form.Group className="my-3">
+          <Form.Label>Xác nhận mật khẩu</Form.Label>
           <Form.Control
             type="password"
-            placeholder="Nhập lại mật khẩu"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Nhập lại mật khẩu"
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              setErrors({ ...errors, confirmPassword: "" });
+            }}
           />
+          {errors.confirmPassword && (
+            <div style={{ color: "red", fontSize: "14px", marginTop: "4px" }}>
+              {errors.confirmPassword}
+            </div>
+          )}
         </Form.Group>
 
-        <Button
-          type="submit"
-          variant="primary"
-          className="mt-2"
-          disabled={isLoading}
-        >
+        <Button type="submit" disabled={isLoading}>
           Đăng Ký
         </Button>
 
@@ -145,7 +164,7 @@ const RegisterScreen = () => {
         <Col>
           Đã có tài khoản?{" "}
           <Link to={redirect ? `/login?redirect=${redirect}` : "/login"}>
-            Đăng Nhập
+            Đăng nhập
           </Link>
         </Col>
       </Row>
