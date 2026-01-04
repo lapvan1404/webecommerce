@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { React, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Form, Button, Row, Col } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
@@ -6,7 +6,6 @@ import FormContainer from "../components/FormContainer";
 import Loader from "../components/Loader";
 import { useRegisterMutation } from "../slices/usersApiSlice";
 import { setCredentials } from "../slices/authSlice";
-import { toast } from "react-toastify";
 
 const RegisterScreen = () => {
   const [name, setName] = useState("");
@@ -14,6 +13,7 @@ const RegisterScreen = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // ❗ error states
   const [errors, setErrors] = useState({});
 
   const dispatch = useDispatch();
@@ -29,46 +29,47 @@ const RegisterScreen = () => {
     if (userInfo) navigate(redirect);
   }, [userInfo, redirect, navigate]);
 
-  // ================= VALIDATION =================
   const validate = () => {
-    const err = {};
+    const newErrors = {};
 
-    if (!/^[a-zA-Z0-9]{5,18}$/.test(name)) {
-      err.name = "Tài khoản gồm 5–18 ký tự, được tạo thành bởi chữ cái và chữ số!";
+    // username
+    if (!/^[a-zA-Z0-9]{5,15}$/.test(name)) {
+      newErrors.name =
+        "Tài khoản gồm 5–15 ký tự, chỉ bao gồm chữ cái và chữ số!";
     }
 
+    // email
     if (!email) {
-      err.email = "Email không được để trống!";
+      newErrors.email = "Email không được để trống!";
     } else if (!/^\S+@\S+\.\S+$/.test(email)) {
-      err.email = "Email không đúng định dạng!";
+      newErrors.email = "Email không đúng định dạng!";
     }
 
-    if (
-      !/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).{6,20}$/.test(password)
-    ) {
-      err.password =
+    // password
+    if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).{6,20}$/.test(password)) {
+      newErrors.password =
         "Mật khẩu 6–20 ký tự, gồm chữ, số và ký tự đặc biệt!";
     }
 
-    if (confirmPassword !== password) {
-      err.confirmPassword = "Hai mật khẩu không trùng khớp!";
+    // confirm password
+    if (password !== confirmPassword) {
+      newErrors.confirmPassword = "Hai mật khẩu không trùng khớp!";
     }
 
-    setErrors(err);
-    return Object.keys(err).length === 0;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  // ================= SUBMIT =================
   const submitHandler = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
     try {
       const res = await register({ name, email, password }).unwrap();
-      dispatch(setCredentials(res));
+      dispatch(setCredentials({ ...res }));
       navigate(redirect);
     } catch (err) {
-      toast.error(err?.data?.message || err.error);
+      setErrors({ api: err?.data?.message || "Đăng ký thất bại!" });
     }
   };
 
@@ -79,40 +80,28 @@ const RegisterScreen = () => {
       <Form onSubmit={submitHandler}>
         {/* USERNAME */}
         <Form.Group className="my-3">
-          <Form.Label>Tài khoản</Form.Label>
+          <Form.Label>Tên đăng nhập</Form.Label>
           <Form.Control
-            type="text"
             value={name}
-            placeholder="Nhập tài khoản"
-            onChange={(e) => {
-              setName(e.target.value);
-              setErrors({ ...errors, name: "" });
-            }}
+            onChange={(e) => setName(e.target.value)}
+            isInvalid={!!errors.name}
           />
-          {errors.name && (
-            <div style={{ color: "red", fontSize: "14px", marginTop: "4px" }}>
-              {errors.name}
-            </div>
-          )}
+          <Form.Control.Feedback type="invalid">
+            {errors.name}
+          </Form.Control.Feedback>
         </Form.Group>
 
         {/* EMAIL */}
         <Form.Group className="my-3">
           <Form.Label>Email</Form.Label>
           <Form.Control
-            type="email"
             value={email}
-            placeholder="Nhập email"
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setErrors({ ...errors, email: "" });
-            }}
+            onChange={(e) => setEmail(e.target.value)}
+            isInvalid={!!errors.email}
           />
-          {errors.email && (
-            <div style={{ color: "red", fontSize: "14px", marginTop: "4px" }}>
-              {errors.email}
-            </div>
-          )}
+          <Form.Control.Feedback type="invalid">
+            {errors.email}
+          </Form.Control.Feedback>
         </Form.Group>
 
         {/* PASSWORD */}
@@ -121,17 +110,12 @@ const RegisterScreen = () => {
           <Form.Control
             type="password"
             value={password}
-            placeholder="Nhập mật khẩu"
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setErrors({ ...errors, password: "" });
-            }}
+            onChange={(e) => setPassword(e.target.value)}
+            isInvalid={!!errors.password}
           />
-          {errors.password && (
-            <div style={{ color: "red", fontSize: "14px", marginTop: "4px" }}>
-              {errors.password}
-            </div>
-          )}
+          <Form.Control.Feedback type="invalid">
+            {errors.password}
+          </Form.Control.Feedback>
         </Form.Group>
 
         {/* CONFIRM PASSWORD */}
@@ -140,32 +124,26 @@ const RegisterScreen = () => {
           <Form.Control
             type="password"
             value={confirmPassword}
-            placeholder="Nhập lại mật khẩu"
-            onChange={(e) => {
-              setConfirmPassword(e.target.value);
-              setErrors({ ...errors, confirmPassword: "" });
-            }}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            isInvalid={!!errors.confirmPassword}
           />
-          {errors.confirmPassword && (
-            <div style={{ color: "red", fontSize: "14px", marginTop: "4px" }}>
-              {errors.confirmPassword}
-            </div>
-          )}
+          <Form.Control.Feedback type="invalid">
+            {errors.confirmPassword}
+          </Form.Control.Feedback>
         </Form.Group>
+
+        {errors.api && <div className="text-danger mb-2">{errors.api}</div>}
 
         <Button type="submit" disabled={isLoading}>
           Đăng Ký
         </Button>
-
         {isLoading && <Loader />}
       </Form>
 
       <Row className="py-3">
         <Col>
           Đã có tài khoản?{" "}
-          <Link to={redirect ? `/login?redirect=${redirect}` : "/login"}>
-            Đăng nhập
-          </Link>
+          <Link to={`/login?redirect=${redirect}`}>Đăng Nhập</Link>
         </Col>
       </Row>
     </FormContainer>
