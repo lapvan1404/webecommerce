@@ -1,6 +1,7 @@
 import {React, useState,useEffect } from "react";
 import {Link, useLocation, useNavigate} from 'react-router-dom';
-import {Form, Button, Row, Col} from 'react-bootstrap';
+import {Form, Button, Row, Col, InputGroup} from 'react-bootstrap';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useDispatch, useSelector } from "react-redux";
 import FormContainer from "../components/FormContainer";
 import Loader from "../components/Loader";
@@ -12,6 +13,8 @@ import {toast} from 'react-toastify';
 const LoginScreen = () => {
     const [email,setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [remember, setRemember] = useState(true);
+    const [showPassword, setShowPassword] = useState(false);
 
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -34,7 +37,13 @@ const LoginScreen = () => {
         e.preventDefault();
         try {
             const res = await login({email, password}).unwrap();
-            dispatch(setCredentials({...res,}));
+            // store credentials in redux
+            dispatch(setCredentials({...res}));
+            // respect remember checkbox: if not remembered, move to sessionStorage
+            if (!remember) {
+              sessionStorage.setItem('userInfo', JSON.stringify(res));
+              localStorage.removeItem('userInfo');
+            }
             navigate(redirect);
         } catch (err) {
             toast.error(err?.data?.message || err.error);
@@ -53,21 +62,32 @@ const LoginScreen = () => {
         </Form.Group>
 
  <Form.Group controlId="password" className="my-3">
-            <Form.Label>
-                Mật Khẩu
-            </Form.Label>
-            <Form.Control 
-            type="password" 
-            placeholder="Nhập Mật Khẩu" 
-            value={password} 
-            onChange={(e)=>setPassword(e.target.value)}>
-
-            </Form.Control>
+            <Form.Label>Mật Khẩu</Form.Label>
+            <InputGroup>
+              <Form.Control
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Nhập Mật Khẩu"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <InputGroup.Text className="bg-white">
+                <button type="button" className="btn btn-sm btn-light" onClick={() => setShowPassword((s) => !s)}>
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </InputGroup.Text>
+            </InputGroup>
         </Form.Group>
-        
-        <Button type="submit" variant="primary" className="mt-2" disabled={isLoading}>
-            Đăng Nhập 
-        </Button>
+
+        <Form.Group controlId="remember" className="mb-3">
+          <Form.Check type="checkbox" label="Ghi nhớ đăng nhập" checked={remember} onChange={(e)=>setRemember(e.target.checked)} />
+        </Form.Group>
+
+        <div className="d-flex justify-content-between align-items-center">
+          <Button type="submit" variant="primary" className="mt-2" disabled={isLoading}>
+              Đăng Nhập 
+          </Button>
+          <Link to="/forgot" className="mt-3">Quên mật khẩu?</Link>
+        </div>
         {isLoading && <Loader/>}
     </Form>
     <Row className="py-3">

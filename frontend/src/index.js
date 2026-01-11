@@ -21,6 +21,7 @@ import ProductScreen from './screens/ProductScreen';
 import CartScreen from './screens/CartScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import ShippingScreen from './screens/ShippingScreen';
 import PaymentScreen from './screens/PaymentScreen';
 import PlaceOrderScreen from './screens/PlaceOrderScreen';
@@ -58,8 +59,7 @@ const router = createBrowserRouter(
         element={<ProductScreen />}
       />
       <Route path='/cart' element={<CartScreen />} />
-      <Route path='/login' element={<LoginScreen />} />
-      <Route
+      <Route path='/login' element={<LoginScreen />} />      <Route path='/forgot' element={<ForgotPasswordScreen />} />      <Route
         path='/register'
         element={<RegisterScreen />}
       />

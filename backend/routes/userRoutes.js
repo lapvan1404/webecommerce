@@ -1,16 +1,25 @@
-// backend/routes/userRoutes.js
-import express from "express";
+import express from 'express';
+const router = express.Router();
 import {
   authUser,
   registerUser,
-} from "../controllers/userController.js";
+  logoutUser,
+  forgotPassword,
+  getUserProfile,
+  updateUserProfile,
+  getUsers,
+  deleteUser,
+  getUserByID,
+  updateUser,
+} from '../controllers/userController.js';
 
-const router = express.Router();
+import { protect, admin } from '../middleware/authMiddleware.js';
 
-// POST /api/users/login
-router.post("/login", authUser);
-
-// POST /api/users/register
-router.post("/register", registerUser);
+router.route('/').post(registerUser).get(protect, admin, getUsers);
+router.post('/logout', logoutUser);
+router.post('/auth', authUser);
+router.post('/forgot', forgotPassword);
+router.route('/profile').get(protect, getUserProfile).put(protect, updateUserProfile);
+router.route('/:id').delete(deleteUser).get(protect, admin, getUserByID).put(protect, admin, updateUser);
 
 export default router;
