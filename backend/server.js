@@ -1,3 +1,4 @@
+import cors from 'cors';
 import path from 'path';
 import express from 'express';
 import dotenv from 'dotenv';
@@ -22,6 +23,15 @@ app.use(express.urlencoded({ extended: true }));
 
 // Cookie
 app.use(cookieParser());
+app.use(
+  cors({
+    origin: [
+      'http://localhost:3000',
+      'https://webecommerce-phi.vercel.app'
+    ],
+    credentials: true,
+  })
+);
 
 // Routes
 app.use('/api/products', productRoutes);
